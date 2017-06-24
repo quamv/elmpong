@@ -27,13 +27,13 @@ forcing the user to be clear about which he is passing as the ball
 -}
 type BallSeg = BallSeg Segment
 
-
 {-
+}
 Takes a Model and a Stepball
 Calls a set of collision functions between ball, paddles and wall
 Returns the next Ball object after collision detection/response
 -}
-doCollisions : Model -> StepBall -> Ball
+doCollisions : Model -> StepBall -> CollisionResults
 doCollisions model stepball =
     let
         collisionDetails = CollisionDetectionSpecs
@@ -41,11 +41,11 @@ doCollisions model stepball =
             model.rpaddle
             model.reflectionMode
     in
-    collide stepball [
-        collidePaddles collisionDetails,
-        collideFieldWalls,
-        collidePaddles collisionDetails
-        ]
+        collide False stepball [
+            collidePaddles collisionDetails,
+            collideFieldWalls,
+            collidePaddles collisionDetails
+            ]
 
 
 
@@ -59,14 +59,16 @@ Returns a Ball with the new coordinates and velocity (if no collisions
 were detected, this will simply be the stepball parameter's 2nd pt and velocity
 ie. an object in motion..)
 -}
-collide : StepBall -> List (StepBall -> Maybe StepBall) -> Ball
-collide stepball collisionFunctionList =
+collide : Bool -> StepBall -> List (StepBall -> Maybe StepBall) -> CollisionResults
+collide collided stepball collisionFunctionList =
     case collisionFunctionList of
 
         []   ->
             -- no collision functions left to test. just use the second point of the
             -- stepball as the new x,y position. keep the velocity.
-            Ball stepball.p2 stepball.velocity
+            CollisionResults
+                (Ball stepball.p2 stepball.velocity)
+                collided
 
         collisionFunction::collisionFunctionListTail ->
             -- found 1 or more collision functions to test.
@@ -76,11 +78,11 @@ collide stepball collisionFunctionList =
                 Just reflectedStepball ->
                     -- collided, retry with the reflected ball (which should no longer collide, I guess?
                     -- it seems like this is a way to make an elm program fail at runtime. check. it is.)
-                    collide reflectedStepball collisionFunctionList
+                    collide True reflectedStepball collisionFunctionList
 
                 Nothing  ->
                     -- no collision, recurse with the rest of the functions in the list
-                    collide stepball collisionFunctionListTail
+                    collide collided stepball collisionFunctionListTail
 
 
 {-

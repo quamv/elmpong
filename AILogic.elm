@@ -86,7 +86,7 @@ updateAIPlayer paddle keys targety =
 
 
 {-
-Determine the current target y-coordinate for the right paddle (Player1)
+Determine the current target y-coordinate for the left paddle (Player1)
 If the ball is heading in the other direction seek the vertical center
 -}
 getAITargetLeft : Model -> Float
@@ -97,7 +97,8 @@ getAITargetLeft model =
     else
         -- ball heading in our direction. seek collision pt with
         -- the line at the left paddle's x-coordinate
-        getAITarget model lpX
+        -- getAITarget model lpX
+        fst model.intercepts
 
 
 {-
@@ -112,8 +113,8 @@ getAITargetRight model =
     else
         -- ball heading in our direction. seek collision pt with
         -- the line at the right paddle's x-coordinate
-        getAITarget model rpX
-
+        -- getAITarget model rpX
+        snd model.intercepts
 
 {-
 Determine the target y-coordinate for a specific paddle (Player)

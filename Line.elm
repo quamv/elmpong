@@ -43,23 +43,22 @@ type alias CutPt = {
     pt: Point2d
     }
 
---
---------------------------------------
---}
----- Intersection testers           --
---------------------------------------
---
---{-
---
---L - Line
---S - Segment
---P - Point
---
---e.g.
---'intersectLS' intersects a Line and a Segment
----}
---
---
+
+{-
+
+------------------------------------
+-- Intersection testers           --
+------------------------------------
+
+L - Line
+S - Segment
+P - Point
+
+e.g.
+'intersectLS' intersects a Line and a Segment
+-}
+
+
 {-
 Find intersection between two lines
 If lines intersect, returns a Point2d

@@ -8,7 +8,7 @@ import Keyboard exposing (..)
 import Set exposing (Set)
 import Dict exposing (..)
 import Helpers exposing (..)
-import Line exposing (Point2d)
+import Line exposing (Point2d, Line)
 
 
 -----------
@@ -51,6 +51,11 @@ type alias StepBall = {
     , velocity: Velocity2d
     }
 
+type alias CollisionResults = {
+    ball : Ball
+    ,collided : Bool
+    }
+
 type Msg =
     RequestNewBall
     | TogglePaused
@@ -61,6 +66,7 @@ type Msg =
     | SetReflectionMode ReflectionMode
     | ToggleShowSettings
     | AITick Time
+    | ToggleActivePlayer PlayerSide
 
 type LRDirection =
     L2R
@@ -85,7 +91,8 @@ type alias Model = {
     , showSettings: Bool
     , player1type: PlayerType
     , player2type: PlayerType
-
+    , collided: Bool
+    , intercepts: (Float, Float)
 --    , pauseAfterGoal: Boolean
     }
 

@@ -46,6 +46,8 @@ init = ({
         , showSettings = False
         , player1type = CPU
         , player2type = CPU
+        , collided = False
+        , intercepts = getPaddleIntercepts defaultBall
     }
     , Cmd.none) --,Random.generate NewBallConstantVX (int -8 8))
 
@@ -121,7 +123,21 @@ update msg model =
             ({ model | showSettings = not model.showSettings}, Cmd.none)
 
         AITick _ ->
-            ({ model | keys = (updateAIPlayers model)}, Cmd.none)
+            ({ model |
+                keys = (updateAIPlayers model)
+                , collided = False
+            }, Cmd.none)
+
+        ToggleActivePlayer side ->
+            case side of
+                Player1 ->
+                    ({ model |
+                        player1type = togglePlayerType model.player1type}
+                     , Cmd.none)
+                Player2 ->
+                    ({ model |
+                        player2type = togglePlayerType model.player2type}
+                     , Cmd.none)
 
 
 {-
@@ -136,7 +152,11 @@ keyDown k model =
     else if k == (toCode 'N') then
         update RequestNewBall model
     else
-        ({ model | keys = (addKey (fromCode k) model.keys) }, Cmd.none)
+        if isCpuPlayerKey k model.player1type model.player2type then
+            -- ignore keypresses for CPU players
+            (model, Cmd.none)
+        else
+            ({ model | keys = (addKey (fromCode k) model.keys) }, Cmd.none)
 
 
 {-
@@ -155,8 +175,20 @@ stepGameForward model timeDiff =
             stepBall diff model.ball
 
         -- check for/respond to collisions, determine ball's final xy coord
-        ball =
+        collisionResults =
             doCollisions model stepball
+
+        -- grab the Ball
+        ball =
+            collisionResults.ball
+
+        -- update intercepts
+        newIntercepts =
+            if collisionResults.collided then
+                -- re-evaluate intercepts
+                getPaddleIntercepts ball
+            else
+                model.intercepts
 
         -- update the paddle locations based on user input
         (nextlpaddle,nextrpaddle) =
@@ -165,6 +197,7 @@ stepGameForward model timeDiff =
         -- generate new model
         newModel = ({ model |
             ball = ball,
+            intercepts = newIntercepts,
             lpaddle = nextlpaddle,
             rpaddle = nextrpaddle
             })
