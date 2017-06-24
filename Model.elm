@@ -133,6 +133,8 @@ paddleWidth = 28
 paddleHeight = 150
 paddleHalfHeight = paddleHeight / 2
 paddleHalfWidth = paddleWidth / 2
+paddleLowerBound = paddleHalfHeight
+paddleUpperBound = fieldHeight - paddleHalfHeight
 -- distance between paddle and playing field edge
 paddleDist = 10
 

@@ -32,7 +32,6 @@ import Line exposing (..)
 import ModelHelpers exposing (..)
 
 
-
 {-
 Drive a round of AI play for all cpu players
 this means to return a set of AI pressed keys based on the
@@ -74,10 +73,11 @@ updateAIPlayer paddle keys targety =
             Set.filter (\k -> k /= upkey && k /= downkey) keys
 
         -- determine the key to press based on relative ball location
+        -- don't hold the key down if at boundaries (max/min)
         newKeys =
-            if targety > paddle.y + paddleHalfHeight then
+            if targety > paddle.y + paddleHalfHeight && paddle.y < paddleUpperBound then
                 addKey downkey resetKeys
-            else if targety < paddle.y - paddleHalfHeight then
+            else if targety < paddle.y - paddleHalfHeight && paddle.y > paddleLowerBound then
                 addKey upkey resetKeys
             else
                 resetKeys

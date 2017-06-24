@@ -16,8 +16,8 @@ Paddle y-pos (on the surface of the paddle in the center)
 
 module PaddleHelpers exposing (
     getPaddleFrontSeg
-    ,getPaddleSideSeg
-    ,stepPaddles
+    , getPaddleSideSeg
+    , stepPaddles
     )
 
 import Line exposing (..)
@@ -38,8 +38,6 @@ paddleSegHalfLength = paddleHalfHeight + ballRadius
 paddleSegTopY py = py - paddleSegHalfLength
 paddleSegBotY py = py + paddleSegHalfLength
 paddleIntersectTopBot py = (paddleSegTopY py, paddleSegBotY py)
-paddleLowerBound = paddleHalfHeight
-paddleUpperBound = fieldHeight - paddleHalfHeight
 lpSegX1 = lpX - paddleWidth - ballRadius
 lpSegX2 = lpX + ballRadius
 rpSegX1 = rpX - ballRadius
