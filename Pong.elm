@@ -29,6 +29,7 @@ main =
         }
 
 
+
 {-
 Creates the initial model and random ball direction
 -}
@@ -48,6 +49,8 @@ init = ({
         , player2type = CPU
         , collided = False
         , intercepts = getPaddleIntercepts defaultBall
+        , pauseAfterGoal = True
+        , colorsSet = { paddleFill="black", ballFill="white", bgFill="grey"}
     }
     , Cmd.none) --,Random.generate NewBallConstantVX (int -8 8))
 
@@ -122,6 +125,9 @@ update msg model =
         ToggleShowSettings ->
             ({ model | showSettings = not model.showSettings}, Cmd.none)
 
+        TogglePauseAfterGoal ->
+            ({ model | pauseAfterGoal = not model.pauseAfterGoal}, Cmd.none)
+
         AITick _ ->
             ({ model |
                 keys = (updateAIPlayers model)
@@ -138,6 +144,21 @@ update msg model =
                     ({ model |
                         player2type = togglePlayerType model.player2type}
                      , Cmd.none)
+
+        UpdateSetting setting val ->
+            updateSetting model setting val
+
+
+updateSetting : Model -> ConfigurableString -> String -> (Model, Cmd Msg)
+updateSetting model setting val =
+    let
+        prev = model.colorsSet
+    in
+    case setting of
+        BgFill ->  ({ model | colorsSet = { prev | bgFill = val} } , Cmd.none)
+        BallFill -> ({ model | colorsSet = { prev | ballFill = val} } , Cmd.none)
+        PaddleFill -> ({ model | colorsSet = { prev | paddleFill = val} }, Cmd.none)
+
 
 
 {-
@@ -201,26 +222,26 @@ stepGameForward model timeDiff =
             lpaddle = nextlpaddle,
             rpaddle = nextrpaddle
             })
+
     in
         -- if a goal has apparently been scored, update score, reset ball
         case checkGoalScored ball of
-            Just Player1 ->
-                -- player1 scored
+            Just player ->
                 ({ newModel |
-                        score = addPoint Player1 model.score
-                        ,gameState = Paused
-                }, randomizeBallConstantVX)
-
-            Just Player2 ->
-                -- player2 scored
-                ({ newModel |
-                        score = addPoint Player2 model.score
-                        ,gameState = Paused
+                        score = addPoint player model.score
+                        ,gameState = postGoalState model.pauseAfterGoal
                 }, randomizeBallConstantVX)
 
             Nothing ->
                 -- no goal scoresd
                 (newModel, Cmd.none)
+
+
+postGoalState : Bool -> GameState
+postGoalState pauseAfterGoal =
+    case pauseAfterGoal of
+        True -> Paused
+        False -> Playing
 
 
 {-
@@ -236,10 +257,13 @@ newBallConstantVX model vy =
         vx = case model.nextballDirection of
             L2R -> ballVX
             R2L -> 0 - ballVX
+
+        newball = Ball centerPt (Velocity2d vx (toFloat vy))
     in
         ({ model |
             nextballDirection = flipLR model.nextballDirection
-            , ball = Ball centerPt (Velocity2d vx (toFloat vy))}
+            , intercepts = getPaddleIntercepts newball
+            , ball = newball}
         , Cmd.none)
 
 

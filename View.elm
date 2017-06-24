@@ -6,8 +6,8 @@ import ModelHelpers exposing (..)
 import Line exposing (..)
 import ModelHelpers exposing (lineFromBall)
 import Html exposing (Html, div, p, text, a, button, h3, label, input, ul, fieldset, section, span)
-import Html.Attributes exposing (style, href, target, type_, value, checked)
-import Html.Events exposing (onClick)
+import Html.Attributes exposing (style, href, target, type_, value, checked, placeholder)
+import Html.Events exposing (onClick, onInput)
 import Svg exposing (svg, rect, image, g, circle, line, text_, marker, path, defs)
 import Svg.Attributes exposing (id, x, y, viewBox, fill, width, height,
     cx, cy, r, color, stroke, strokeWidth, fontSize, opacity)
@@ -145,40 +145,44 @@ gameView model =
                 viewBox viewSettings.viewBoxStr
                 , Svg.Attributes.width viewSettings.svgWidth
             ] [
-                backgroundView
-                , paddlesView model.lpaddle model.rpaddle
-                , ballView model.ball
-                --, scoreboardView model -- model.score
+                backgroundView [fill model.colorsSet.bgFill]
+                , paddlesView model
+                , ballView [fill model.colorsSet.ballFill] model.ball
             ]
     ]
 
-ballView : Ball -> Html Msg
-ballView {pos} =
-    circle [
+ballView : List (Svg.Attribute msg) -> Ball -> Html msg
+ballView attrs {pos} =
+    Svg.circle (attrs ++ [
         cx <| toString pos.x
         , cy <| toString pos.y
         , r <| toString ballRadius
-        , fill viewSettings.ballfill
-        ] []
+        ]) []
 
 
-paddlesView : Paddle -> Paddle -> Html msg
-paddlesView lpaddle rpaddle =
+paddlesView : Model -> Html msg
+paddlesView model =
+    let
+        lpaddle = model.lpaddle
+        rpaddle = model.rpaddle
+        colorsset = model.colorsSet
+        paddleAttrs = [ fill colorsset.paddleFill ]
+    in
     g [] [
-        paddleView viewSettings.paddles.margin lpaddle
-        , paddleView rpX rpaddle
+        paddleView paddleAttrs viewSettings.paddles.margin lpaddle
+        , paddleView paddleAttrs rpX rpaddle
         ]
 
 
-paddleView : Int-> Paddle -> Html msg
-paddleView xcoord paddle =
-    rect [
+paddleView : List (Svg.Attribute msg) -> Int-> Paddle -> Html msg
+paddleView attrs xcoord paddle =
+    rect (attrs ++ [
         x <| toString xcoord
         , y <| toString (paddle.y - paddleHalfHeight)
         , Svg.Attributes.width viewSettings.paddles.width
         , Svg.Attributes.height viewSettings.paddles.height
-        , fill viewSettings.paddles.fill
-        ] []
+        ])
+        []
 
 
 styles = {
@@ -204,19 +208,20 @@ scoreboardView model =
             ]
 
 
-backgroundView : Html msg
-backgroundView =
+backgroundView : List (Svg.Attribute msg) -> Html msg
+backgroundView attrs =
     let
         w = toString fieldWidth
         h = toString fieldHeight
     in
-    rect [
+    rect (attrs ++ [
         x "0"
         , y "0"
         , Svg.Attributes.width w
         , Svg.Attributes.height h
-        , fill viewSettings.bgfill
-        ] []
+        --, fill viewSettings.bgfill
+        ]) []
+
 
 
 
@@ -229,7 +234,8 @@ settingsview model =
             in
                 div [ style <| svgCentered ++ [("margin-top","10px")] ]
                 [
-                    viewPicker
+                   button [ onClick ToggleShowSettings ] [ text "hide settings" ]
+                   , viewPicker
                     [ ( "Simple Reflection",
                         SetReflectionMode Simple,
                         reflectionMode == Simple)
@@ -237,13 +243,17 @@ settingsview model =
                         SetReflectionMode PaddleCenterRelative,
                         reflectionMode == PaddleCenterRelative)
                     ]
-                  , button [ onClick ToggleShowSettings ] [ text "hide settings" ]
-                    -- , section [] [ text model.content ]
+                  , checkbox TogglePauseAfterGoal "Pause after goal" model.pauseAfterGoal
+                  , textField "BgFill" model.colorsSet.bgFill BgFill
+                  , textField "BallFill" model.colorsSet.ballFill BallFill
+                  , textField "PaddleFill" model.colorsSet.paddleFill PaddleFill
                 ]
         False ->
             div [] [
                 button [ onClick ToggleShowSettings ] [ text "settings" ]
             ]
+
+
 
 defaultBtnStyle =
     [("margin","10px")]
@@ -266,10 +276,19 @@ playersChooseView model =
         ]
     ]
 
+
+textField : String -> String -> ConfigurableString -> Html Msg
+textField prompt initVal setting =
+    div [] [
+        span [] [text <| prompt]
+        , input [
+            value initVal,
+            onInput (UpdateSetting setting) ] []
+    ]
+
 viewPicker : List (String, msg, Bool) -> Html msg
 viewPicker options =
-    fieldset [ style svgCentered ] (List.map radio options)
-
+    div [ style svgCentered ] (List.map radio options)
 
 radio : (String, msg, Bool) -> Html msg
 radio (name, msg, ischkd) =
@@ -279,3 +298,10 @@ radio (name, msg, ischkd) =
     ]
 
 
+
+checkbox : msg -> String -> Bool -> Html msg
+checkbox msg name val =
+  label []
+    [ input [ type_ "checkbox", onClick msg, checked val ] []
+    , text name
+    ]

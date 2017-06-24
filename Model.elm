@@ -56,6 +56,11 @@ type alias CollisionResults = {
     ,collided : Bool
     }
 
+type ConfigurableString =
+    BgFill
+    | PaddleFill
+    | BallFill
+
 type Msg =
     RequestNewBall
     | TogglePaused
@@ -65,8 +70,10 @@ type Msg =
     | KeyUpMsg Keyboard.KeyCode
     | SetReflectionMode ReflectionMode
     | ToggleShowSettings
+    | TogglePauseAfterGoal
     | AITick Time
     | ToggleActivePlayer PlayerSide
+    | UpdateSetting ConfigurableString String
 
 type LRDirection =
     L2R
@@ -77,6 +84,11 @@ type ReflectionMode =
     Simple -- -1 * vx
     | PaddleCenterRelative -- ignore incoming trajectory. only use y coord of collision pt
 
+type alias ColorsSet = {
+    paddleFill: String
+    , ballFill: String
+    , bgFill: String
+    }
 
 type alias Model = {
     yesno: Bool
@@ -93,7 +105,8 @@ type alias Model = {
     , player2type: PlayerType
     , collided: Bool
     , intercepts: (Float, Float)
---    , pauseAfterGoal: Boolean
+    , pauseAfterGoal: Bool
+    , colorsSet : ColorsSet
     }
 
 type alias CollisionDetectionSpecs = {
@@ -122,6 +135,7 @@ centerPt = {
     }
 
 -- TODO: check if this delta variable can/should be used
+-- given that the timediffs are divided by 50, I assume this is related
 --delta = 50
 
 -- ball speed in x direction
