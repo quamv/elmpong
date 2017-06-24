@@ -116,41 +116,5 @@ getAITargetRight model =
         -- getAITarget model rpX
         snd model.intercepts
 
-{-
-Determine the target y-coordinate for a specific paddle (Player)
-This involves intersecting the ball's travel path with the vertical
-line at the specified x coordinate (targetPaddleX)
--}
-getAITarget : Model -> Float -> Float
-getAITarget model targetPaddleX =
-    let
-        -- extrapolate the ball's travel line
-        ballLine =
-            lineFromBall model.ball
 
-        -- get a vertical line at x=targetPaddleX
-        paddleLine =
-            verLine targetPaddleX
-    in
-        -- intersect the ball's extrapolated travel line with the vertical line
-        -- at the paddle's intersection x-coord (e.g. lpX + ballRadius)
-        case intersectLL ballLine paddleLine of
-            Just pt ->
-                -- TODO: recheck the reasoning here re: halfheight (presumed unintended side effects)
-                if pt.y < paddleHalfHeight then
-                    -- as high as we can go. the 'halfheight' adjustment
-                    -- is handled in updateAIPlayer
-                    0
-                else if pt.y > fieldHeight - paddleHalfHeight then
-                    -- as low as we can go. the 'halfheight' adjustment
-                    -- is handled in updateAIPlayer
-                    fieldHeight
-                else
-                    -- somewhere in between the min and max y-coords
-                    pt.y
-
-            Nothing ->
-                -- no intersection? shouldn't really happen
-                -- default to mid-field
-                snd halfField
 

@@ -245,17 +245,23 @@ settingsview model =
                 button [ onClick ToggleShowSettings ] [ text "settings" ]
             ]
 
-playerChooseButtonStyle =
+defaultBtnStyle =
     [("margin","10px")]
 
 playersChooseView : Model -> Html Msg
 playersChooseView model =
     div [] [
-        button [ onClick (ToggleActivePlayer Player1), style playerChooseButtonStyle  ] [
+        button [ onClick (ToggleActivePlayer Player1), style defaultBtnStyle  ] [
             text <| "Switch Player 1 to " ++ (toString <| togglePlayerType model.player1type)
         ]
         ,
-        button [ onClick (ToggleActivePlayer Player2), style playerChooseButtonStyle  ] [
+        button [ onClick (TogglePaused), style defaultBtnStyle  ] [
+            text <| case model.gameState of
+                    Paused -> "Resume"
+                    Playing -> "Pause"
+        ]
+        ,
+        button [ onClick (ToggleActivePlayer Player2), style defaultBtnStyle  ] [
             text <| "Switch Player 2 to " ++ (toString <| togglePlayerType model.player2type)
         ]
     ]
