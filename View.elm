@@ -58,8 +58,8 @@ view model =
             , style viewSettings.containerStyle
         ] [
             scoreboardView model
-            , gameView model
             , playersChooseView model
+            , gameView model
             , debugView model
             , settingsview model
         ]
@@ -100,6 +100,8 @@ debugView model =
         simpleTextDiv "Pos: " <| "{ x=" ++ (toString x) ++ " y=" ++ (toString y) ++ "}"
         , simpleTextDiv "Velocity: " <| "{ vx=" ++ (toString vx) ++ " vy=" ++ (toString vy) ++ "}"
         , ballDetailsView model.ball
+        , simpleTextDiv "Intercepts: " (toString intercepts)
+        , simpleTextDiv "Paddles: (" <| (toString lp) ++ "," ++ (toString rp) ++ ")"
         , div [] [
             text <| "Raw Keys: " ++
                 if Set.size model.keys > 0 then
@@ -107,8 +109,6 @@ debugView model =
                 else
                     ""
         ]
-        , simpleTextDiv "Intercepts: " (toString intercepts)
-        , simpleTextDiv "Paddles: (" <| (toString lp) ++ "," ++ (toString rp) ++ ")"
     ]
 
 simpleTextDiv : String -> String -> Html Msg
@@ -227,7 +227,7 @@ settingsview model =
             let
                 reflectionMode = model.reflectionMode
             in
-                div [ style [ ("border", "3px solid black") ] ]
+                div [ style <| svgCentered ++ [("margin-top","10px")] ]
                 [
                     viewPicker
                     [ ( "Simple Reflection",
