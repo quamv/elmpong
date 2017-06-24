@@ -86,17 +86,6 @@ collide collided stepball collisionFunctionList =
 
 
 {-
-Takes an x-coordinate of a Ball
-Returns a Bool
-True -> collisions are possible
-False -> no collision possible
--}
-paddleCollisionPossible : Float -> Bool
-paddleCollisionPossible x =
-    (x - ballRadius <= lpX) ||
-    (x + ballRadius >= rpX)
-
-{-
 Checks if a paddle collision is viable
 If so, calls collidePaddle to test
 Otherwise returns Nothing
@@ -173,18 +162,23 @@ Hitting the side instead of the front of the paddle should bounce
 -}
 collidePaddleSide : Paddle -> Segment -> Velocity2d -> Maybe StepBall
 collidePaddleSide paddle ballSeg velocity =
-    -- paddle side (Top/Bottom) collisions only possible for non-horizontal movement
-    -- we are using the stepball displacement vector to determine the movement rather than
-    -- the velocity vector at the moment. velocity seems reasonable but the displacement
-    -- vector (specifically (y1 - y2)) seems a sure thing.
-    -- determine if a side collision is possible and if so, get the segment to check
-    case getViablePaddleSideDetails ballSeg paddle of
+    if velocity.vy == 0 then
+        Nothing
+    else
+        -- paddle side (Top/Bottom) collisions only possible for non-horizontal movement
+        -- we are using the stepball displacement vector to determine the movement rather than
+        -- the velocity vector at the moment. velocity seems reasonable but the displacement
+        -- vector (specifically (y1 - y2)) seems a sure thing.
+        -- determine if a side collision is possible and if so, get the segment to check
+        let
+            (paddleSideSeg, expectedVCut) =
+                if velocity.vy < 0 then
+                    (getPaddleSideSeg paddle Bottom, CVBottom2Top)
+                else
+                    (getPaddleSideSeg paddle Top, CVTop2Bottom)
 
-        Just (paddleSideSeg, expectedVCut) ->
-            -- a collision is possible. check.
-            let
-                ballSegHack = BallSeg <| ballSeg
-            in
+            ballSegHack = BallSeg <| ballSeg
+        in
             case collideBallPaddleSide expectedVCut ballSegHack paddleSideSeg of
 
                 Just collisionPt ->
@@ -197,10 +191,6 @@ collidePaddleSide paddle ballSeg velocity =
                     -- no intersection found. no collision
                     Nothing
 
-        Nothing ->
-            -- presumably the ball is traveling on a horizontal line
-            -- which cannot intersect the sides (Top/Bottom) of the paddles
-            Nothing
 
 
 {-
@@ -261,63 +251,6 @@ collideFieldWall wall stepball =
                 Nothing
 
 
-{-
-If a side collision is viable, returns the segment and expected cut
-Otherwise, returns Nothing
--}
-getViablePaddleSideDetails : Segment -> Paddle -> Maybe (Segment, CutVer)
-getViablePaddleSideDetails seg paddle =
-    case getViablePaddleSideCollision (seg.p2.y - seg.p1.y) of
-
-        Just (side2Check, expectedVCut) ->
-            -- there is a viable side collision. get the relevant segment
-            let
-                paddleSideSeg = getPaddleSideSeg paddle side2Check
-            in
-                Just (paddleSideSeg, expectedVCut)
-
-        Nothing -> Nothing
-
-
-{-
-Paddle side collisions can only occur if there is a vertical velocity component
-If vy > 0, we can only possibly hit the top side of a paddle
-If vy < 0, we can only possibly hit the bottom side of a paddle
-If vy !=0 Return a tuple with the viable side (Top/Bottom) and expected cut
-direction (CVTop2Bottom,CVBottom2Top)
-If vy == 0 return Nothing
--}
-getViablePaddleSideCollision : Float -> Maybe (TopOrBottom, CutVer)
-getViablePaddleSideCollision dy =
-    if dy > 0 then
-        -- dy > 0 means moving downwards, could hit top side
-        Just <| (Top, CVTop2Bottom)
-    else if dy < 0 then
-        -- dy < 0 means moving upwards, could hit bottom side
-        Just <| (Bottom, CVBottom2Top)
-    else -- presumably horizontal line
-        Nothing
-
-
-
---{-
---Field wall collisions can only occur if there is a vertical velocity component
---If vy > 0, we can only possibly hit the bottom wall
---If vy < 0, we can only possibly hit the top wall
---So if vy /=0 Return a tuple with the viable side (Top/Bottom) and expected cut
---direction (CVTop2Bottom,CVBottom2Top)
---If vy == 0 return Nothing (travel along horizontal line)
----}
---getViableFieldWallCollision : Float -> Maybe (WallSide, CutVer)
---getViableFieldWallCollision vy =
---    if vy > 0 then
---        Just <| (BottomWall, CVTop2Bottom)
---    else if vy < 0 then
---        Just <| (TopWall, CVBottom2Top)
---    else -- presumably horizontal line
---        Nothing
---
---
 
 
 {-

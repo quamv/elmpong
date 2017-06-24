@@ -1,3 +1,11 @@
+{-
+view functions
+
+clueless groping here. constantly working against the flow.
+
+TODO: redesign entirely
+-}
+
 module View exposing (view)
 
 import Helpers exposing (..)
@@ -116,6 +124,9 @@ simpleTextDiv prefix str =
     div [] [ text <| prefix ++ str]
 
 
+{-
+this a no work. i no sure.
+-}
 round2 : Float-> Float -> Float
 round2 places val =
     (toFloat <| round <| val * (10^places)) / (10^places)

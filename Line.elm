@@ -4,14 +4,14 @@ module Line exposing (..)
 import Helpers exposing (isJust)
 
 
---           Standard case, coefficient between -Inf and Inf exclusive
-type DirectionCoefficient = DC Float
-                          | DCVer Float
--- (coefficient infinite->) Vertical + x of a point it goes through
+type DirectionCoefficient =
+    -- Standard case, coefficient between -Inf and Inf exclusive
+    DC Float
+    -- (coefficient infinite->) Vertical + x of a point it goes through
+    | DCVer Float
 
 
---          Line DC                   + y of a point it goes through
---type Line = Line DirectionCoefficient Float
+--  Line DC + y-intercept
 type alias Line = {
     dc : DirectionCoefficient,
     yintercept : Float
@@ -27,9 +27,7 @@ type alias Segment = {
     p2 : Point2d
     }
 
-
 -- direction of cut
---type Cut = C CutHor CutVer
 type CutHor = CHLeft2Right | CHRight2Left | CHNeutral
 type CutVer = CVBottom2Top | CVTop2Bottom | CVNeutral
 
@@ -109,7 +107,6 @@ intersectLS line segment =
         Just intersectionPt ->
             -- the lines do intersect. check segment
             intersectPS intersectionPt segment
-
 
         Nothing ->
             -- no intersection between lines, so no possible intersection
