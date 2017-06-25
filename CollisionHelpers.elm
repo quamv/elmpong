@@ -48,7 +48,6 @@ doCollisions model stepball =
             ]
 
 
-
 {-
 Checks a directed segment (aka stepball/vector in xy) against a list of collision functions.
 It calls each function until the vector doesn't collide with that
@@ -126,7 +125,7 @@ collidePaddle reflectionMode stepball paddle expectedHCut =
         -- check for segment intersection (collision) between paddleSeg and ballSeg
         -- NOTE: added BallSeg parameter because the ball segment MUST be the first
         -- segment parameter in order to get the cut directions right
-        case collideBallPaddleFront expectedHCut (BallSeg ballSeg) paddleFrontSeg of
+        case intersectPaddleFront expectedHCut (BallSeg ballSeg) paddleFrontSeg of
 
             Just collisionPt ->
                 -- collision found, reflect
@@ -135,12 +134,11 @@ collidePaddle reflectionMode stepball paddle expectedHCut =
             Nothing ->
                 -- no intersection found with 'front' of paddle.
                 -- see if we need to check the paddle sides
-                if stepball.p2.y /= stepball.p1.y then
-                    -- check possible collision with paddle sides
-                    collidePaddleSide paddle ballSeg stepball.velocity
-                else
-                    -- horizontal direction can not intersect Top/Bottom of paddle
+                if stepball.velocity.vy == 0 then
+                    -- paddle side (Top/Bottom) collisions only possible for non-horizontal movement
                     Nothing
+                else
+                    collidePaddleSide paddle ballSeg stepball.velocity
 
 
 
@@ -159,37 +157,61 @@ Hitting the side instead of the front of the paddle should bounce
         ||
         ||
 
+TODO: fix this. it rarely works. responding to a side collision as a result of paddle
+TODO: movement could be hairy (ie. ball already in spot, paddle moves up and hits)
+TODO: because collision tests have already taken place. prob. need to recheck again.
 -}
 collidePaddleSide : Paddle -> Segment -> Velocity2d -> Maybe StepBall
 collidePaddleSide paddle ballSeg velocity =
-    if velocity.vy == 0 then
-        Nothing
-    else
-        -- paddle side (Top/Bottom) collisions only possible for non-horizontal movement
-        -- we are using the stepball displacement vector to determine the movement rather than
-        -- the velocity vector at the moment. velocity seems reasonable but the displacement
-        -- vector (specifically (y1 - y2)) seems a sure thing.
-        -- determine if a side collision is possible and if so, get the segment to check
-        let
-            (paddleSideSeg, expectedVCut) =
-                if velocity.vy < 0 then
-                    (getPaddleSideSeg paddle Bottom, CVBottom2Top)
-                else
-                    (getPaddleSideSeg paddle Top, CVTop2Bottom)
+    -- paddle side (Top/Bottom) collisions only possible for non-horizontal movement
+    -- this is a private function and we know the only caller context,
+    -- the caller checks velocity.vy /= 0 before calling us so we will not here
+    let
+        -- determine the possible side collision based on velocity y-component
+        (paddleSideSeg, expectedVCut) =
+            if velocity.vy < 0 then
+                -- vy < 0 means upward movement so bottom side is viable
+                (getPaddleSideSeg paddle Bottom, CVBottom2Top)
+            else
+                -- vy > 0 means downward movement so top side is viable
+                (getPaddleSideSeg paddle Top, CVTop2Bottom)
 
-            ballSegHack = BallSeg <| ballSeg
-        in
-            case collideBallPaddleSide expectedVCut ballSegHack paddleSideSeg of
+        -- get the segment for intersection test
+        ballSegHack = BallSeg <| ballSeg
+    in
+        case intersectPaddleSide expectedVCut ballSegHack paddleSideSeg of
 
-                Just collisionPt ->
-                    -- there was a collision between the ball and paddle side
-                    -- reflect vertically based on the original destination point
-                    Just <| reflectVer collisionPt ballSeg.p2 velocity
+            Just collisionPt ->
+                -- there was a collision between the ball and paddle side
+                -- reflect vertically based on the original destination point
+                Just <| reflectVer collisionPt ballSeg.p2 velocity
+
+            Nothing ->
+                -- no intersection found. no collision
+                Nothing
 
 
-                Nothing ->
-                    -- no intersection found. no collision
-                    Nothing
+
+{-
+TODO: review this problem regarding ballseg/paddleseg parameter order problem
+The function "(Line.)intersectSS : Segment -> Segment..." takes two segment parameters
+The parameters  MUST BE IN THE CORRECT ORDER with the "ballseg" coming first.
+The ballsegment MUST be the first parameter because the routines that determine
+Cut directions (e.g. CHLeft2Right, CVNeutral) assume the first parameter's POV
+ie. the assumption is that the first segment is a displacement vector while the
+second segment is stationary object.
+intersectBPByCutHor (below) is a wrapper function to (essentially) ensure that
+the order is correct by forcing the caller to specify the "BallSeg"
+Could change to "MovingSeg" and "StationarySeg" perhaps.
+Or "DisplacementSeg" and "ExtentSeg"
+-}
+intersectPaddleFront : CutHor -> BallSeg -> Segment -> Maybe Point2d
+intersectPaddleFront cutHor (BallSeg ballSeg) paddleSeg =
+    intersectSSByCutHor cutHor ballSeg paddleSeg
+
+intersectPaddleSide : CutVer -> BallSeg -> Segment -> Maybe Point2d
+intersectPaddleSide cutVer (BallSeg ballSeg) paddleSeg =
+    intersectSSByCutVer cutVer ballSeg paddleSeg
 
 
 
@@ -197,6 +219,7 @@ collidePaddleSide paddle ballSeg velocity =
 Determines the viable field wall to collide with and checks for collision
 If collision detected, returns a reflected stepball
 Otherwise, returns Nothing
+TODO: occasionally balls near corners fly off the screen.probably after rapid paddle/wall collisions
 -}
 collideFieldWalls : StepBall -> Maybe StepBall
 collideFieldWalls stepball =
@@ -249,31 +272,6 @@ collideFieldWall wall stepball =
             Nothing ->
                 -- no intersection found. no collision
                 Nothing
-
-
-
-
-{-
-TODO: review this problem regarding ballseg/paddleseg parameter order problem
-The function "(Line.)intersectSS : Segment -> Segment..." takes two segment parameters
-The parameters  MUST BE IN THE CORRECT ORDER with the "ballseg" coming first.
-The ballsegment MUST be the first parameter because the routines that determine
-Cut directions (e.g. CHLeft2Right, CVNeutral) assume the first parameter's POV
-ie. the assumption is that the first segment is a displacement vector while the
-second segment is stationary object.
-intersectBPByCutHor (below) is a wrapper function to (essentially) ensure that
-the order is correct by forcing the caller to specify the "BallSeg"
-Could change to "MovingSeg" and "StationarySeg" perhaps.
-Or "DisplacementSeg" and "ExtentSeg"
--}
-collideBallPaddleFront : CutHor -> BallSeg -> Segment -> Maybe Point2d
-collideBallPaddleFront cutHor (BallSeg ballSeg) paddleSeg =
-    intersectSSByCutHor cutHor ballSeg paddleSeg
-
-collideBallPaddleSide : CutVer -> BallSeg -> Segment -> Maybe Point2d
-collideBallPaddleSide cutVer (BallSeg ballSeg) paddleSeg =
-    intersectSSByCutVer cutVer ballSeg paddleSeg
-
 
 
 

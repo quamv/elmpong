@@ -90,16 +90,19 @@ keyToStr char =
         s ++ " " ++ "Unknown"
 
 
+rnd3 : Float -> Float
+rnd3 = round2 3
+
 debugView : Model -> Html Msg
 debugView model =
     let
-        vx = round model.ball.velocity.vx
-        vy = round model.ball.velocity.vy
-        x = round model.ball.pos.x
-        y = round model.ball.pos.y
-        intercepts = (round <| fst model.intercepts, round <| snd model.intercepts)
-        lp = round2 3 model.lpaddle.y
-        rp = round2 3 model.rpaddle.y
+        vx = rnd3 model.ball.velocity.vx
+        vy = rnd3 model.ball.velocity.vy
+        x = rnd3 model.ball.pos.x
+        y = rnd3 model.ball.pos.y
+        lp = rnd3 model.lpaddle.y
+        rp = rnd3 model.rpaddle.y
+        intercepts = (rnd3  <| fst model.intercepts, rnd3 <| snd model.intercepts)
     in
     div [
         style <| svgCentered ++ [("text-align", "left")]
@@ -125,7 +128,7 @@ simpleTextDiv prefix str =
 
 
 {-
-this a no work. i no sure.
+appears to work fine. was pebkac.
 -}
 round2 : Float-> Float -> Float
 round2 places val =
@@ -195,7 +198,6 @@ paddleView attrs xcoord paddle =
         ])
         []
 
-
 styles = {
     scoreboardContainer=[("background-color","green")]
     ,scoreboardHeaders=[("display","inline"),("color","white"),("margin","20px")]
@@ -230,7 +232,6 @@ backgroundView attrs =
         , y "0"
         , Svg.Attributes.width w
         , Svg.Attributes.height h
-        --, fill viewSettings.bgfill
         ]) []
 
 
@@ -239,30 +240,33 @@ backgroundView attrs =
 settingsview : Model -> Html Msg
 settingsview model =
     case model.showSettings of
-        True ->
-            let
-                reflectionMode = model.reflectionMode
-            in
-                div [ style <| svgCentered ++ [("margin-top","10px")] ]
-                [
-                   button [ onClick ToggleShowSettings ] [ text "hide settings" ]
-                   , viewPicker
-                    [ ( "Simple Reflection",
-                        SetReflectionMode Simple,
-                        reflectionMode == Simple)
-                    , ( "Reflect relative to paddle center",
-                        SetReflectionMode PaddleCenterRelative,
-                        reflectionMode == PaddleCenterRelative)
-                    ]
-                  , checkbox TogglePauseAfterGoal "Pause after goal" model.pauseAfterGoal
-                  , textField "BgFill" model.colorsSet.bgFill BgFill
-                  , textField "BallFill" model.colorsSet.ballFill BallFill
-                  , textField "PaddleFill" model.colorsSet.paddleFill PaddleFill
-                ]
         False ->
             div [] [
                 button [ onClick ToggleShowSettings ] [ text "settings" ]
-            ]
+                ]
+
+        True ->
+            let
+                settings = [
+                    button [ onClick ToggleShowSettings ] [ text "hide settings" ]
+                    , viewPicker
+                        [ ( "Simple Reflection",
+                            SetReflectionMode Simple,
+                            model.reflectionMode == Simple)
+                        , ( "Reflect relative to paddle center",
+                            SetReflectionMode PaddleCenterRelative,
+                            model.reflectionMode == PaddleCenterRelative)
+                        ]
+
+                    , boolSetting TogglePauseAfterGoal "Pause after goal" model.pauseAfterGoal
+                    , textSetting "BgFill" model.colorsSet.bgFill BgFill
+                    , textSetting "BallFill" model.colorsSet.ballFill BallFill
+                    , textSetting "PaddleFill" model.colorsSet.paddleFill PaddleFill
+                    ]
+            in
+            div [ style <| svgCentered ++ [("margin-top","10px")] ]
+                <| List.map settingsRow settings
+
 
 
 
@@ -287,19 +291,26 @@ playersChooseView model =
         ]
     ]
 
+settingsRow node =
+    div [ style settingsRowStyle ] [ node ]
 
-textField : String -> String -> ConfigurableString -> Html Msg
-textField prompt initVal setting =
-    div [] [
-        span [] [text <| prompt]
+settingsRowStyle = [("margin-top","10px")]
+settingLabel = [("margin-right","5px")]
+
+textSetting : String -> String -> ConfigurableString -> Html Msg
+textSetting prompt initVal setting =
+    div [ ] [
+        span [ style settingLabel ] [text <| prompt ++ ":" ]
         , input [
             value initVal,
             onInput (UpdateSetting setting) ] []
     ]
 
+
 viewPicker : List (String, msg, Bool) -> Html msg
 viewPicker options =
-    div [ style svgCentered ] (List.map radio options)
+    div [ style <| svgCentered ] (List.map radio options)
+
 
 radio : (String, msg, Bool) -> Html msg
 radio (name, msg, ischkd) =
@@ -309,10 +320,9 @@ radio (name, msg, ischkd) =
     ]
 
 
-
-checkbox : msg -> String -> Bool -> Html msg
-checkbox msg name val =
-  label []
+boolSetting : msg -> String -> Bool -> Html msg
+boolSetting msg name val =
+  label [ ]
     [ input [ type_ "checkbox", onClick msg, checked val ] []
     , text name
     ]
